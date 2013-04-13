@@ -4,6 +4,7 @@
           port :: integer() | undefined,
           password :: binary() | undefined,
           reconnect_sleep :: integer() | undefined | no_reconnect,
+          reconnect_option :: term() | undefined,
 
           socket :: port() | undefined,
           parser_state :: #pstate{} | undefined,

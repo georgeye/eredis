@@ -16,7 +16,7 @@
 
 
 %% API
--export([start_link/6, stop/1]).
+-export([start_link/6, start_link/7, stop/1]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -34,9 +34,11 @@
                  QueueBehaviour::drop | exit) ->
                         {ok, Pid::pid()} | {error, Reason::term()}.
 start_link(Host, Port, Password, ReconnectSleep, MaxQueueSize, QueueBehaviour) ->
-    Args = [Host, Port, Password, ReconnectSleep, MaxQueueSize, QueueBehaviour],
-    gen_server:start_link(?MODULE, Args, []).
+    start_link(Host, Port, Password, ReconnectSleep, MaxQueueSize, QueueBehaviour, undefined).
 
+start_link(Host, Port, Password, ReconnectSleep, MaxQueueSize, QueueBehaviour, ReconnectOption) ->
+    Args = [Host, Port, Password, ReconnectSleep, MaxQueueSize, QueueBehaviour, ReconnectOption],
+    gen_server:start_link(?MODULE, Args, []).
 
 stop(Pid) ->
     gen_server:call(Pid, stop).
@@ -45,11 +47,12 @@ stop(Pid) ->
 %% gen_server callbacks
 %%====================================================================
 
-init([Host, Port, Password, ReconnectSleep, MaxQueueSize, QueueBehaviour]) ->
+init([Host, Port, Password, ReconnectSleep, MaxQueueSize, QueueBehaviour, ReconnectOption]) ->
     State = #state{host            = Host,
                    port            = Port,
                    password        = list_to_binary(Password),
                    reconnect_sleep = ReconnectSleep,
+                   reconnect_option = ReconnectOption,
                    channels        = [],
                    parser_state    = eredis_parser:init(),
                    msg_queue       = queue:new(),
@@ -283,8 +286,12 @@ queue_or_send(Msg, State) ->
 %% @doc: Helper for connecting to Redis. These commands are
 %% synchronous and if Redis returns something we don't expect, we
 %% crash. Returns {ok, State} or {SomeError, Reason}.
-connect(State) ->
-    case gen_tcp:connect(State#state.host, State#state.port, ?SOCKET_OPTS) of
+connect(#state{reconnect_option=Reconnect_Option} = State) ->
+    {Host, Port} = case Reconnect_Option of
+        undefined -> {State#state.host, State#state.port};
+        {M, F, Args} -> erlang:apply(M, F, Args)
+    end,
+    case gen_tcp:connect(Host, Port, ?SOCKET_OPTS) of
         {ok, Socket} ->
             inet:setopts(Socket, [{active, false}]),
             case authenticate(Socket, State#state.password) of

@@ -10,7 +10,7 @@
 %% Specified in http://www.erlang.org/doc/man/gen_server.html#call-3
 -define(TIMEOUT, 5000).
 
--export([start_link/0, start_link/1, start_link/3, start_link/6, stop/1,
+-export([start_link/0, start_link/1, start_link/3, start_link/6, start_link/7, stop/1,
          controlling_process/1, controlling_process/2, controlling_process/3,
          ack_message/1, subscribe/2, unsubscribe/2, channels/1]).
 
@@ -30,17 +30,19 @@ start_link() ->
 start_link(Host, Port, Password) ->
     start_link(Host, Port, Password, 100, infinity, drop).
 
+start_link(Host, Port, Password, ReconnectSleep, MaxQueueSize, QueueBehaviour) ->
+    start_link(Host, Port, Password, ReconnectSleep, MaxQueueSize, QueueBehaviour, undefined).
+
 start_link(Host, Port, Password, ReconnectSleep,
-           MaxQueueSize, QueueBehaviour)
+           MaxQueueSize, QueueBehaviour, ReconnectOption)
   when is_list(Host) andalso
        is_integer(Port) andalso
        is_list(Password) andalso
        (is_integer(ReconnectSleep) orelse ReconnectSleep =:= no_reconnect) andalso
        (is_integer(MaxQueueSize) orelse MaxQueueSize =:= infinity) andalso
        (QueueBehaviour =:= drop orelse QueueBehaviour =:= exit) ->
-
     eredis_sub_client:start_link(Host, Port, Password, ReconnectSleep,
-                                 MaxQueueSize, QueueBehaviour).
+                                 MaxQueueSize, QueueBehaviour, ReconnectOption).
 
 
 %% @doc: Callback for starting from poolboy

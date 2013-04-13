@@ -16,7 +16,7 @@
 -define(TIMEOUT, 5000).
 
 -export([start_link/0, start_link/1, start_link/2, start_link/3, start_link/4,
-         start_link/5, stop/1, q/2, q/3, qp/2, qp/3, q_noreply/2]).
+         start_link/5, start_link/6, stop/1, q/2, q/3, qp/2, qp/3, q_noreply/2]).
 
 %% Exported for testing
 -export([create_multibulk/1]).
@@ -37,15 +37,16 @@ start_link(Host, Port, Database) ->
 start_link(Host, Port,  Database, Password) ->
     start_link(Host, Port, Database, Password, 100).
 
-start_link(Host, Port, Database, Password, ReconnectSleep)
+start_link(Host, Port, Database, Password, ReconnectSleep) -> 
+    start_link(Host, Port, Database, Password, ReconnectSleep, undefined).
+
+start_link(Host, Port, Database, Password, ReconnectSleep, ReconnectOption)
   when is_list(Host);
        is_integer(Port);
        is_integer(Database);
        is_list(Password);
        is_integer(ReconnectSleep) orelse ReconnectSleep =:= no_reconnect ->
-
-    eredis_client:start_link(Host, Port, Database, Password, ReconnectSleep).
-
+    eredis_client:start_link(Host, Port, Database, Password, ReconnectSleep, ReconnectOption).
 
 %% @doc: Callback for starting from poolboy
 -spec start_link(server_args()) -> {ok, Pid::pid()} | {error, Reason::term()}.
